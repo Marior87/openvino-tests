@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 
 # Path to CPU_EXTENSION, should be something like this:
-CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so"
+# CPU_EXTENSION = "/opt/intel/openvino/deployment_tools/inference_engine/lib/intel64/libcpu_extension_sse4.so"
 
-def get_detector(model_path, device='CPU', cpu_extension = CPU_EXTENSION):
+def get_detector(model_path, device='CPU', cpu_extension = None):
     """
     Function to get a model loaded to a network and able to use some other useful functions.
 
@@ -20,12 +20,14 @@ def get_detector(model_path, device='CPU', cpu_extension = CPU_EXTENSION):
         h_model = Expected input height for the model.
         w_model = Expected input width for the model.
     """
+
     model_net = Network()
-    model_net.load_model(model_path,device,cpu_extension)
+    model_net.load_model(model_path, device, cpu_extension)
     model_shape = model_net.get_input_shape()
     h_model = model_shape[2]
     w_model = model_shape[3]
     return model_net, h_model, w_model
+
 
 def get_bounding_boxes(frame, model_net, model_h, model_w, confidence=0.5):
     """
@@ -42,9 +44,11 @@ def get_bounding_boxes(frame, model_net, model_h, model_w, confidence=0.5):
         results_bb: A list with len = number of bounding boxes, and each element contains
                     the four boundig box coordinates (xmin, ymin, xmax, ymax).
     """
+
     pp_frame = preprocessing(frame, model_h, model_w)
     model_net.async_inference(pp_frame)
     results_bb = []
+    
     if model_net.wait() == 0:
         prev_results = model_net.extract_output()
         for p_r in prev_results[0,0]:
@@ -67,6 +71,7 @@ def get_landmarks(crops, model_net, model_h, model_w):
     Returns:
         pts_abs = A list with the absolute position (ie regarding input shape) of each landmark.
     """
+
     pts_abs = []
     for crop in crops:
         h_crop = crop.shape[0]
@@ -139,6 +144,7 @@ def get_crops(frame, result_bb):
     Results:
         crops: A list with crops from the frame.
     """
+
     height = frame.shape[0]
     width = frame.shape[1]
     crops = []
@@ -227,7 +233,7 @@ def draw_texts(frame,
                 font_size = 0.5, 
                 font_color = (255,255,255), 
                 font_thickness = 2,
-                offset_x = -50,
+                offset_x = -10,
                 offset_y = -10):
     """
     Function to draw text over a bounding box.
@@ -265,7 +271,7 @@ def draw_texts(frame,
 
     return img
 
-def get_age_gender(crops, model_net, model_h, model_w, language='es'):
+def get_age_gender(crops, model_net, model_h, model_w, language='en'):
     """
     Function to get emotions from faces crops.
 
@@ -279,6 +285,7 @@ def get_age_gender(crops, model_net, model_h, model_w, language='es'):
     Returns:
         age_gender: A list of tuples with identifyed (age, gender) for each crop.
     """
+
     if language == 'en':
         gender_list = ('female', 'male')
     elif language == 'es':
